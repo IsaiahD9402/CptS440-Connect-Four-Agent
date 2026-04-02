@@ -23,6 +23,21 @@ def _order_moves(valid_moves: List[int]) -> List[int]:
 
 
 # ---------------------------------------------------------------------------
+# Search statistics
+# ---------------------------------------------------------------------------
+
+class SearchStats:
+    """Mutable counter object threaded through search calls."""
+    __slots__ = ("nodes",)
+
+    def __init__(self) -> None:
+        self.nodes: int = 0
+
+    def reset(self) -> None:
+        self.nodes = 0
+
+
+# ---------------------------------------------------------------------------
 # Evaluation
 # ---------------------------------------------------------------------------
 
@@ -116,11 +131,15 @@ def minimax(
     depth: int,
     maximizing: bool,
     player: int,
+    stats: Optional[SearchStats] = None,
 ) -> Tuple[float, Optional[int]]:
     """
     Minimax (no pruning). Returns (score, best_column).
-    best_column is None only at terminal state when no move is possible.
+    Uses simple_evaluate for a fair baseline comparison.
     """
+    if stats is not None:
+        stats.nodes += 1
+
     winner = board.get_winner()
     if winner is not None:
         return (WIN_SCORE if winner == player else LOSS_SCORE, None)
@@ -139,7 +158,7 @@ def minimax(
         for col in valid:
             child = board.copy()
             child.drop(col, player)
-            score, _ = minimax(child, depth - 1, False, player)
+            score, _ = minimax(child, depth - 1, False, player, stats)
             if score > best_score:
                 best_score = score
                 best_col = col
@@ -149,14 +168,19 @@ def minimax(
         for col in valid:
             child = board.copy()
             child.drop(col, opp)
-            score, _ = minimax(child, depth - 1, True, player)
+            score, _ = minimax(child, depth - 1, True, player, stats)
             if score < best_score:
                 best_score = score
                 best_col = col
         return (best_score, best_col)
 
 
-def get_ai_move(board: ConnectFourBoard, player: int, depth: int = 4) -> Optional[int]:
+def get_ai_move(
+    board: ConnectFourBoard,
+    player: int,
+    depth: int = 4,
+    stats: Optional[SearchStats] = None,
+) -> Optional[int]:
     """
     Return the best column for `player` using plain Minimax at fixed depth.
     Kept for backward-compatibility with play.py and baseline experiments.
@@ -164,7 +188,7 @@ def get_ai_move(board: ConnectFourBoard, player: int, depth: int = 4) -> Optiona
     valid = board.get_valid_moves()
     if not valid:
         return None
-    _, col = minimax(board, depth, True, player)
+    _, col = minimax(board, depth, True, player, stats)
     return col
 
 
@@ -179,10 +203,14 @@ def alphabeta(
     beta: float,
     maximizing: bool,
     player: int,
+    stats: Optional[SearchStats] = None,
 ) -> Tuple[float, Optional[int]]:
     """
     Minimax with alpha-beta pruning. Returns (score, best_column).
     """
+    if stats is not None:
+        stats.nodes += 1
+
     winner = board.get_winner()
     if winner is not None:
         return (WIN_SCORE if winner == player else LOSS_SCORE, None)
@@ -201,7 +229,7 @@ def alphabeta(
         for col in valid:
             child = board.copy()
             child.drop(col, player)
-            score, _ = alphabeta(child, depth - 1, alpha, beta, False, player)
+            score, _ = alphabeta(child, depth - 1, alpha, beta, False, player, stats)
             if score > best_score:
                 best_score = score
                 best_col = col
@@ -214,7 +242,7 @@ def alphabeta(
         for col in valid:
             child = board.copy()
             child.drop(col, opp)
-            score, _ = alphabeta(child, depth - 1, alpha, beta, True, player)
+            score, _ = alphabeta(child, depth - 1, alpha, beta, True, player, stats)
             if score < best_score:
                 best_score = score
                 best_col = col
@@ -224,12 +252,17 @@ def alphabeta(
         return (best_score, best_col)
 
 
-def get_ab_move(board: ConnectFourBoard, player: int, depth: int = 6) -> Optional[int]:
+def get_ab_move(
+    board: ConnectFourBoard,
+    player: int,
+    depth: int = 6,
+    stats: Optional[SearchStats] = None,
+) -> Optional[int]:
     """Return the best column using alpha-beta at fixed depth."""
     valid = board.get_valid_moves()
     if not valid:
         return None
-    _, col = alphabeta(board, depth, float("-inf"), float("inf"), True, player)
+    _, col = alphabeta(board, depth, float("-inf"), float("inf"), True, player, stats)
     return col
 
 
@@ -242,6 +275,7 @@ def iterative_deepening(
     player: int,
     max_depth: int = 20,
     time_limit: float = 5.0,
+    stats: Optional[SearchStats] = None,
 ) -> Tuple[Optional[int], int]:
     """
     Iterative deepening over alpha-beta. Searches depth 1, 2, ... up to
@@ -257,7 +291,7 @@ def iterative_deepening(
         if time.perf_counter() - start >= time_limit:
             break
         score, col = alphabeta(
-            board, depth, float("-inf"), float("inf"), True, player
+            board, depth, float("-inf"), float("inf"), True, player, stats
         )
         if col is not None:
             best_col = col
@@ -275,10 +309,11 @@ def get_id_move(
     player: int,
     max_depth: int = 20,
     time_limit: float = 5.0,
+    stats: Optional[SearchStats] = None,
 ) -> Optional[int]:
     """Return the best column using iterative-deepening alpha-beta."""
     valid = board.get_valid_moves()
     if not valid:
         return None
-    col, _ = iterative_deepening(board, player, max_depth, time_limit)
+    col, _ = iterative_deepening(board, player, max_depth, time_limit, stats)
     return col
