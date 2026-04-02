@@ -9,9 +9,16 @@ from connect_four import ConnectFourBoard, COLS, ROWS, EMPTY, PLAYER_1, PLAYER_2
 WIN_SCORE = 100_000
 LOSS_SCORE = -100_000
 
+_CENTER_ORDER = [3, 2, 4, 1, 5, 0, 6]
+
 
 def _opponent(player: int) -> int:
     return PLAYER_2 if player == PLAYER_1 else PLAYER_1
+
+
+def _order_moves(valid_moves: List[int]) -> List[int]:
+    """Return moves sorted center-first for better alpha-beta cutoffs."""
+    return [c for c in _CENTER_ORDER if c in valid_moves]
 
 
 def simple_evaluate(board: ConnectFourBoard, player: int) -> float:
@@ -115,7 +122,7 @@ def alphabeta(
     if board.is_draw():
         return (0.0, None)
 
-    valid = board.get_valid_moves()
+    valid = _order_moves(board.get_valid_moves())
     if not valid or depth == 0:
         return (simple_evaluate(board, player), None)
 
