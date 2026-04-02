@@ -1,7 +1,8 @@
 """
-Connect Four AI: Minimax (baseline) and Alpha-Beta pruning.
+Connect Four AI: Minimax (baseline), Alpha-Beta pruning, and iterative deepening.
 """
 
+import time
 import numpy as np
 from typing import Optional, List, Tuple
 from connect_four import ConnectFourBoard, COLS, ROWS, EMPTY, PLAYER_1, PLAYER_2
@@ -229,4 +230,55 @@ def get_ab_move(board: ConnectFourBoard, player: int, depth: int = 6) -> Optiona
     if not valid:
         return None
     _, col = alphabeta(board, depth, float("-inf"), float("inf"), True, player)
+    return col
+
+
+# ---------------------------------------------------------------------------
+# Iterative Deepening
+# ---------------------------------------------------------------------------
+
+def iterative_deepening(
+    board: ConnectFourBoard,
+    player: int,
+    max_depth: int = 20,
+    time_limit: float = 5.0,
+) -> Tuple[Optional[int], int]:
+    """
+    Iterative deepening over alpha-beta. Searches depth 1, 2, ... up to
+    max_depth or until time_limit seconds elapse.
+
+    Returns (best_column, depth_reached).
+    """
+    best_col: Optional[int] = None
+    depth_reached = 0
+    start = time.perf_counter()
+
+    for depth in range(1, max_depth + 1):
+        if time.perf_counter() - start >= time_limit:
+            break
+        score, col = alphabeta(
+            board, depth, float("-inf"), float("inf"), True, player
+        )
+        if col is not None:
+            best_col = col
+        depth_reached = depth
+        if abs(score) >= WIN_SCORE:
+            break
+        if time.perf_counter() - start >= time_limit:
+            break
+
+    return best_col, depth_reached
+
+
+def get_id_move(
+    board: ConnectFourBoard,
+    player: int,
+    max_depth: int = 20,
+    time_limit: float = 5.0,
+) -> Optional[int]:
+    """Return the best column using iterative-deepening alpha-beta."""
+    valid = board.get_valid_moves()
+    if not valid:
+        return None
+    col, _ = iterative_deepening(board, player, max_depth, time_limit)
     return col
