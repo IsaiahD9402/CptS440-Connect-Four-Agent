@@ -21,6 +21,72 @@ def _order_moves(valid_moves: List[int]) -> List[int]:
     return [c for c in _CENTER_ORDER if c in valid_moves]
 
 
+# ---------------------------------------------------------------------------
+# Evaluation
+# ---------------------------------------------------------------------------
+
+POSITION_WEIGHTS = np.array([
+    [3, 4,  5,  7,  5, 4, 3],
+    [4, 6,  8, 10,  8, 6, 4],
+    [5, 8, 11, 13, 11, 8, 5],
+    [5, 8, 11, 13, 11, 8, 5],
+    [4, 6,  8, 10,  8, 6, 4],
+    [3, 4,  5,  7,  5, 4, 3],
+], dtype=np.float64)
+
+
+def _score_window(window: np.ndarray, player: int, opp: int) -> float:
+    """Score a window of 4 cells."""
+    p = int(np.sum(window == player))
+    o = int(np.sum(window == opp))
+    empty = int(np.sum(window == EMPTY))
+
+    if p == 4:
+        return 1000
+    if p == 3 and empty == 1:
+        return 50
+    if p == 2 and empty == 2:
+        return 10
+    if o == 3 and empty == 1:
+        return -80
+    if o == 2 and empty == 2:
+        return -8
+    return 0
+
+
+def evaluate(board: ConnectFourBoard, player: int) -> float:
+    """
+    Improved heuristic: positional weight table + sliding window-of-4
+    across rows, columns, and both diagonals.
+    """
+    opp = _opponent(player)
+    b = board.board
+    score = 0.0
+
+    score += float(np.sum(POSITION_WEIGHTS * (b == player)))
+    score -= float(np.sum(POSITION_WEIGHTS * (b == opp)))
+
+    for r in range(ROWS):
+        for c in range(COLS - 3):
+            score += _score_window(b[r, c:c + 4], player, opp)
+
+    for c in range(COLS):
+        for r in range(ROWS - 3):
+            score += _score_window(b[r:r + 4, c], player, opp)
+
+    for r in range(ROWS - 3):
+        for c in range(COLS - 3):
+            window = np.array([b[r + i, c + i] for i in range(4)])
+            score += _score_window(window, player, opp)
+
+    for r in range(3, ROWS):
+        for c in range(COLS - 3):
+            window = np.array([b[r - i, c + i] for i in range(4)])
+            score += _score_window(window, player, opp)
+
+    return score
+
+
 def simple_evaluate(board: ConnectFourBoard, player: int) -> float:
     """
     Simple heuristic: piece count difference + center bias.
@@ -124,7 +190,7 @@ def alphabeta(
 
     valid = _order_moves(board.get_valid_moves())
     if not valid or depth == 0:
-        return (simple_evaluate(board, player), None)
+        return (evaluate(board, player), None)
 
     opp = _opponent(player)
     best_col: Optional[int] = valid[0]
