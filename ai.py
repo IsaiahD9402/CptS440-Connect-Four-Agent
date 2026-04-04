@@ -3,6 +3,7 @@ Connect Four AI: Minimax (baseline), Alpha-Beta pruning, and iterative deepening
 """
 
 import time
+import random
 import numpy as np
 from typing import Optional, List, Tuple
 from connect_four import ConnectFourBoard, COLS, ROWS, EMPTY, PLAYER_1, PLAYER_2
@@ -317,3 +318,15 @@ def get_id_move(
         return None
     col, _ = iterative_deepening(board, player, max_depth, time_limit, stats)
     return col
+
+
+# ---------------------------------------------------------------------------
+# Random agent
+# ---------------------------------------------------------------------------
+
+def get_random_move(board: ConnectFourBoard, player: int, **_kwargs) -> Optional[int]:
+    """Pick a uniformly random valid column."""
+    valid = board.get_valid_moves()
+    if not valid:
+        return None
+    return random.choice(valid)
