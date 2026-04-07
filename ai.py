@@ -8,6 +8,9 @@ import numpy as np
 from typing import Optional, List, Tuple
 from connect_four import ConnectFourBoard, COLS, ROWS, EMPTY, PLAYER_1, PLAYER_2
 
+# Transposition Table
+TRANSPOSITION_TABLE = {}
+
 WIN_SCORE = 100_000
 LOSS_SCORE = -100_000
 
@@ -212,6 +215,13 @@ def alphabeta(
     if stats is not None:
         stats.nodes += 1
 
+    # --- Transposition lookup ---
+    key = _board_key(board, player, maximizing)
+    if key in TRANSPOSITION_TABLE:
+        stored_depth, stored_score = TRANSPOSITION_TABLE[key]
+        if stored_depth >= depth:
+            return stored_score, None
+        
     winner = board.get_winner()
     if winner is not None:
         return (WIN_SCORE if winner == player else LOSS_SCORE, None)
@@ -250,6 +260,9 @@ def alphabeta(
             beta = min(beta, best_score)
             if alpha >= beta:
                 break
+
+            # --- Store result ---
+        TRANSPOSITION_TABLE[key] = (depth, best_score)
         return (best_score, best_col)
 
 
@@ -330,3 +343,14 @@ def get_random_move(board: ConnectFourBoard, player: int, **_kwargs) -> Optional
     if not valid:
         return None
     return random.choice(valid)
+
+# ---------------------------------------------------------------------------
+# Create a hashable key for the board state
+# ---------------------------------------------------------------------------
+
+def _board_key(board: ConnectFourBoard, player: int, maximizing: bool) -> tuple:
+    """
+    Create a hashable key for the board state.
+    Includes player + turn to avoid incorrect reuse.
+    """
+    return (tuple(board.board.flatten()), player, maximizing)
