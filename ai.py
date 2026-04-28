@@ -9,7 +9,12 @@ from typing import Optional, List, Tuple
 from connect_four import ConnectFourBoard, COLS, ROWS, EMPTY, PLAYER_1, PLAYER_2
 
 # Transposition Table
-TRANSPOSITION_TABLE = {}
+TRANSPOSITION_TABLE: dict = {}
+
+
+def clear_transposition_table() -> None:
+    """Clear the transposition table between games."""
+    TRANSPOSITION_TABLE.clear()
 
 WIN_SCORE = 100_000
 LOSS_SCORE = -100_000
@@ -247,7 +252,6 @@ def alphabeta(
             alpha = max(alpha, best_score)
             if alpha >= beta:
                 break
-        return (best_score, best_col)
     else:
         best_score = float("inf")
         for col in valid:
@@ -261,9 +265,8 @@ def alphabeta(
             if alpha >= beta:
                 break
 
-            # --- Store result ---
-        TRANSPOSITION_TABLE[key] = (depth, best_score)
-        return (best_score, best_col)
+    TRANSPOSITION_TABLE[key] = (depth, best_score)
+    return (best_score, best_col)
 
 
 def get_ab_move(

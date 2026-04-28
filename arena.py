@@ -19,6 +19,7 @@ from ai import (
     get_id_move,
     get_random_move,
     SearchStats,
+    clear_transposition_table,
 )
 
 AGENT_REGISTRY: Dict[str, Callable] = {
@@ -48,6 +49,7 @@ def play_game(
         p2_time: total seconds spent by player 2
     """
     board = ConnectFourBoard()
+    clear_transposition_table()
     stats1, stats2 = SearchStats(), SearchStats()
     total_time1, total_time2 = 0.0, 0.0
     move_count = 0
